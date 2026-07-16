@@ -30,3 +30,12 @@ type User struct {
 // AutoMigrate()
 
 // Struct ke basis par database schema create/update karta hai.
+
+
+// "We use GORM because it reduces boilerplate code, maps Go structs to database tables, provides CRUD operations, supports auto migrations, and speeds up backend development. For applications that need maximum SQL control or performance, raw SQL or libraries like pgx can be a better choice."
+
+
+// "Humne GORM use kiya taaki hume basic CRUD operations ke liye baar-baar raw SQL na likhni pade, Go structs ko database tables se easily map kar saken, aur development fast aur maintainable rahe."
+
+
+// "Humne GORM use kiya taaki repetitive SQL na likhni pade, Go structs ko database tables se map kar saken, aur backend development faster aur cleaner ho."
