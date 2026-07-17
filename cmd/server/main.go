@@ -7,6 +7,10 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/yash-pokhriyal/realtime-chat-backend/internal/config"
+	"github.com/yash-pokhriyal/realtime-chat-backend/internal/repository"
+	"github.com/yash-pokhriyal/realtime-chat-backend/internal/handlers"
+
+	"github.com/yash-pokhriyal/realtime-chat-backend/internal/database"
 )
 
 func main(){
@@ -15,6 +19,21 @@ func main(){
 	if err!=nil{
 		log.Fatal(err)
 	}
+	log.Println("PORT:", cfg.Port)
+	log.Println("DB_USER:", cfg.DBUser)
+	log.Println("DB_NAME:", cfg.DBName)
+
+	db, err := database.Connect(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+   //  Initialize Repository
+	repo := repository.NewUserRepository(db)
+
+	//  Initialize Handler
+	userHandler := handlers.NewUserHandler(repo)
+
 
 	router := gin.Default()
 
@@ -24,6 +43,10 @@ func main(){
 			"message":"Server is running",
 		})
 	})
+
+	// Register API
+	router.POST("/register", userHandler.Register)
+
 
 	log.Printf("Server started on port %s",cfg.Port)
 	err = router.Run(":"+cfg.Port)

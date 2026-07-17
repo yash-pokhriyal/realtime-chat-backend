@@ -15,15 +15,9 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 	}
 }
 
-
-// Repository ka kaam sirf database se baat karna hai.
-
-// Ye decide karti hai:
-
-// User save karna
-// User find karna
-// User update karna
-// User delete karna
+func (r *UserRepository) Create(user *models.User) error {
+	return r.DB.Create(user).Error
+}
 
 func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 	var user models.User
@@ -36,151 +30,204 @@ func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 	return &user, nil
 }
 
-
-// internal/repository
-
-// Kyun banaya?
-
-// 👉 Database ka saara code ek hi jagah rakhne ke liye.
-
-// user_repository.go
-
-// Kyun?
-
-// 👉 User se related database operations alag file me rakhne ke liye.
-
-// type UserRepository struct
+// 1.
 // type UserRepository struct {
-//     DB *gorm.DB
+// 	DB *gorm.DB
 // }
+// Kyu?
 
-// Kyun?
+// Ye repository ke paas database connection store karta hai.
 
-// 👉 Repository ko database access chahiye, isliye DB store kiya.
+// Without this:
 
+// db.Create(...)
+
+// chal hi nahi sakta.
+
+// 2.
 // DB *gorm.DB
+// Pointer kyu?
 
-// Kyun pointer?
+// Database connection bahut bada object hota hai.
 
-// 👉 Naya database object copy na ho, wahi existing connection use ho.
+// Har function me copy nahi karna.
 
-// NewUserRepository(db *gorm.DB)
-// repo := repository.NewUserRepository(db)
+// Sab same connection use kare.
 
-// Kyun?
-
-// 👉 Repository create karne aur database inject karne ke liye.
+// 3.
+// func NewUserRepository(db *gorm.DB) *UserRepository
+// Ye kya hai?
 
 // Ye constructor hai.
 
-// return &UserRepository{}
+// Jaise car banane ke liye factory hoti hai.
 
-// Kyun pointer return kiya?
+// Waise repository banane ke liye constructor.
 
-// 👉 Object copy na ho, ek hi repository instance use ho.
+// Use:
 
+// repo := repository.NewUserRepository(db)
+// 4.
+// return &UserRepository{
+// 	DB: db,
+// }
+// & kyu?
+
+// Pointer return kar rahe hain.
+
+// Object copy nahi hoga.
+
+// Ek hi repository instance use hoga.
+
+// 5.
 // func (r *UserRepository)
-// func (r *UserRepository) Create(...)
 
-// Ye (r *UserRepository) kya hai?
+// Ye receiver hai.
 
-// 👉 Ye receiver hai.
+// Matlab
 
-// Matlab Create() function UserRepository ka method hai.
+// repo.Create(...)
 
-// Jaise:
+// allowed hoga.
 
-// repo.Create(user)
+// Agar receiver nahi hota to
+
+// Create(...)
+
+// ek normal function hota.
+
+// 6.
 // Create(user *models.User)
 
-// Pointer kyun?
+// Pointer kyu?
 
-// 👉 User object copy na ho.
+// Struct copy nahi hota.
+// GORM insert ke baad ID fill karta hai usi object me.
 
-// Aur GORM insert ke baad ID bhi isi object me fill karta hai.
+// Example:
+
+// user := models.User{Name: "Yash"}
+
+// repo.Create(&user)
+
+// fmt.Println(user.ID)
+
+// ID automatically aa jayegi.
+
+// 7.
+// r.DB.Create(user)
+
+// GORM internally SQL banata hai.
+
+// Tum likhte ho
 
 // r.DB.Create(user)
 
-// Kyun?
+// Andar ye chalta hai:
 
-// 👉 User ko database me insert karne ke liye.
-
+// INSERT INTO users (...)
+// VALUES (...)
+// 8.
 // .Error
 
-// Kyun?
+// Har database operation fail bhi ho sakta hai.
 
-// 👉 GORM operation fail hua ya nahi, uska error return karta hai.
+// Jaise:
 
-// GetByEmail(email string)
+// Duplicate email
+// Database band
+// Network issue
 
-// Kyun?
+// Isliye error return karte hain.
 
-// 👉 Login ke time email se user find karna hoga.
-
-// var user models.User
-
-// Kyun?
-
-// 👉 Database ka result store karne ke liye.
-
+// 9.
 // Where("email = ?", email)
 
-// Kyun ??
+// ? placeholder hai.
 
-// 👉 SQL Injection se bachne ke liye.
+// Ye safe hai.
 
-// ❌ Wrong:
+// ❌ Galat:
 
-// "email = '" + email + "'"
+// Where("email = '" + email + "'")
 
-// ✅ Right:
+// Isse SQL Injection ka risk hota hai.
+
+// ✅ Sahi:
 
 // Where("email = ?", email)
+// 10.
 // First(&user)
 
-// Kyun?
+// Pehla matching record laata hai.
 
-// 👉 Pehla matching record lana.
+// SQL:
 
+// SELECT * FROM users
+// WHERE email = ...
+// LIMIT 1;
+// 11.
 // return &user
 
-// Pointer kyun?
+// Pointer return.
 
-// 👉 User struct copy na ho.
+// Copy nahi hogi.
 
-// Repository Pattern kyun use kiya?
+// 🔥 Sabse Important Concept
+// Repository Pattern
+// Without Repository
+// Handler
 
-// ❌ Agar na use karte:
+// ↓
 
-// handler1 -> db.Create()
+// db.Create()
 
-// handler2 -> db.First()
+// ↓
 
-// handler3 -> db.Delete()
+// db.First()
+
+// ↓
+
+// db.Delete()
 
 // Har jagah database code.
 
-// Database change hua to poora project badlega.
-
-// ✅ Repository use karne par:
-
+// With Repository
 // Handler
-//     ↓
+
+// ↓
+
+// repo.Create()
+
+// ↓
+
 // Repository
-//     ↓
+
+// ↓
+
+// GORM
+
+// ↓
+
 // Database
 
-// Handler ko sirf pata hai:
+// Agar kal GORM hata kar pgx use karna ho, to sirf repository badlegi. Handlers ko touch nahi karna padega.
 
-// repo.Create(user)
+// Flow
+// Browser
 
-// Database ke implementation se koi lena-dena nahi.
+// ↓
 
-// Interview One-Liners
-// Repository? → Database access ko alag layer me rakhne ka pattern.
-// Constructor? → Object initialize karne ke liye.
-// Dependency Injection? → Dependency (db) bahar se pass karna.
-// Pointer (*gorm.DB)? → Copy avoid karna aur same DB instance use karna.
-// Receiver (func (r *UserRepository)) ? → Function ko struct ka method banana.
-// Where("email = ?", email)? → Parameterized query, SQL injection se protection.
-// First()? → Pehla matching record fetch karta hai.
+// Handler
+
+// ↓
+
+// Repository
+
+// ↓
+
+// GORM
+
+// ↓
+
+// PostgreSQL

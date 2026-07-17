@@ -1,28 +1,28 @@
 package database
 
 import (
-	"fmt"
+	// "fmt"
 	"log"
 
 	"github.com/yash-pokhriyal/realtime-chat-backend/internal/config"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"github.com/yash-pokhriyal/realtime-chat-backend/internal/models"
 )
 
 
 func Connect(cfg *config.Config) (*gorm.DB, error) {
 
-	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
-		cfg.DBHost,
-		cfg.DBUser,
-		cfg.DBPassword,
-		cfg.DBName,
-		cfg.DBPort,
-	)
+	dsn := "postgres://er.yashpokhriyal@localhost:5432/realtime_chat?sslmode=disable"
+	log.Println("DSN:", dsn)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.AutoMigrate(&models.User{})
 	if err != nil {
 		return nil, err
 	}
@@ -97,3 +97,20 @@ func Connect(cfg *config.Config) (*gorm.DB, error) {
 // postgres.Open? → PostgreSQL driver select karta hai.
 // &gorm.Config{}? → GORM ki configuration settings.
 // return db, nil? → Database object return, error nahi.
+
+
+// AutoMigrate kya karta hai?
+
+// Ye GORM ko bolta hai:
+
+// "Mere User struct ko dekh aur uske hisaab se database me table bana de."
+
+// Flow:
+
+// User Struct
+//       ↓
+// AutoMigrate()
+//       ↓
+// PostgreSQL
+//       ↓
+// users table create
