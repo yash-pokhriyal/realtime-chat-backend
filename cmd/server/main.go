@@ -11,6 +11,7 @@ import (
 	"github.com/yash-pokhriyal/realtime-chat-backend/internal/handlers"
 
 	"github.com/yash-pokhriyal/realtime-chat-backend/internal/database"
+	"github.com/yash-pokhriyal/realtime-chat-backend/internal/middleware"
 )
 
 func main(){
@@ -32,7 +33,7 @@ func main(){
 	repo := repository.NewUserRepository(db)
 
 	//  Initialize Handler
-	userHandler := handlers.NewUserHandler(repo)
+	userHandler := handlers.NewUserHandler(repo,cfg)
 
 
 	router := gin.Default()
@@ -46,6 +47,21 @@ func main(){
 
 	// Register API
 	router.POST("/register", userHandler.Register)
+
+	router.POST("/login", userHandler.Login)
+
+	protected := router.Group("/api")
+	protected.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+
+	protected.GET("/profile", func(c *gin.Context) {
+
+	userID, _ := c.Get("userID")
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Welcome! You are authenticated.",
+		"userID":  userID,
+	})
+	})
 
 
 	log.Printf("Server started on port %s",cfg.Port)

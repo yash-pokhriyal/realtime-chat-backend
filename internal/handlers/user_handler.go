@@ -10,15 +10,18 @@ import (
 	"errors"
 
     "gorm.io/gorm"
+	"github.com/yash-pokhriyal/realtime-chat-backend/internal/config"
 )
 
 type UserHandler struct {
 	Repo *repository.UserRepository
+	Config *config.Config
 }
 
-func NewUserHandler(repo *repository.UserRepository) *UserHandler {
+func NewUserHandler(repo *repository.UserRepository, cfg *config.Config) *UserHandler {
 	return &UserHandler{
 		Repo: repo,
+		Config: cfg,
 	}
 }
 
@@ -79,6 +82,50 @@ func (h *UserHandler) Register(c *gin.Context) {
 	})
 }
 
+func (h *UserHandler) Login(c *gin.Context) {
+
+	var req models.LoginRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request body",
+		})
+		return
+	}
+
+	user, err := h.Repo.GetByEmail(req.Email)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Invalid email or password",
+		})
+		return
+	}
+
+	if !utils.CheckPassword(req.Password, user.Password) {
+	c.JSON(http.StatusUnauthorized, gin.H{
+		"error": "Invalid email or password",
+	})
+	return
+    }
+
+	token, err := utils.GenerateToken(user.ID, h.Config.JWTSecret)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to generate token",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+	"message": "Login successful",
+	"token":   token,
+	"user": gin.H{
+		"id":    user.ID,
+		"name":  user.Name,
+		"email": user.Email,
+	},
+	})
+}
 
 // ShouldBindJSON()
 //         │
@@ -168,3 +215,55 @@ func (h *UserHandler) Register(c *gin.Context) {
 // Record Not Found
 
 // = Success case for registration.
+
+
+
+// Aaj ka ek interview question
+
+// Q: Registration me password hash kiya, lekin Login me original password kaise verify karoge jab hash ko reverse nahi kar sakte?
+
+// Answer:
+
+// Hum hash ko reverse nahi karte. User jo password login ke time deta hai, usko bcrypt.CompareHashAndPassword() se stored hash ke against compare karte hain. Agar match hota hai to login successful hota hai.
+
+// Client
+//    │
+//    ▼
+// ShouldBindJSON()
+//    │
+//    ▼
+// GetByEmail()
+//    │
+//    ├── Not Found
+//    │      ▼
+//    │   401
+//    │
+//    ▼
+// CheckPassword()
+//    │
+//    ├── Wrong Password
+//    │      ▼
+//    │   401
+//    │
+//    ▼
+// Success
+//    │
+//    ▼
+// 200 OK
+
+
+
+// 📖 Aaj ka interview concept
+
+// Q: Login me ye kyu nahi bataya ki "Email not found" ya "Wrong password"?
+
+// A: Security reasons. Agar alag-alag messages doge, attacker valid emails enumerate kar sakta hai. Isliye dono cases me same response dete hain:
+
+// {
+//   "error": "Invalid email or password"
+// }
+
+// Isse account enumeration attack se protection milti hai.
+
+
+
