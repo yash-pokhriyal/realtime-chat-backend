@@ -12,6 +12,7 @@ import (
 
 	"github.com/yash-pokhriyal/realtime-chat-backend/internal/database"
 	"github.com/yash-pokhriyal/realtime-chat-backend/internal/middleware"
+	"github.com/yash-pokhriyal/realtime-chat-backend/internal/websocket"
 )
 
 func main(){
@@ -38,6 +39,14 @@ func main(){
 
 	router := gin.Default()
 
+	// Initialize WebSocket Hub
+	hub := websocket.NewHub()
+
+	go hub.Run()
+
+	// Initialize WebSocket Handler
+	wsHandler := websocket.NewHandler(hub)
+
 	router.GET("/health",func(c *gin.Context){
 		c.JSON(http.StatusOK,gin.H{
 			"status":"success",
@@ -49,6 +58,8 @@ func main(){
 	router.POST("/register", userHandler.Register)
 
 	router.POST("/login", userHandler.Login)
+
+	router.GET("/ws", wsHandler.HandleConnections)
 
 	protected := router.Group("/api")
 	protected.Use(middleware.AuthMiddleware(cfg.JWTSecret))
