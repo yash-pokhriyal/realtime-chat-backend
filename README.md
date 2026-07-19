@@ -2,12 +2,58 @@
 
 A production-grade Slack/Discord inspired backend built with Go.
 
+## Features
+
+- User Registration
+- User Login
+- JWT Authentication
+- Protected Routes
+- Password Hashing (bcrypt)
+- PostgreSQL Database
+- GORM ORM
+- Repository Pattern
+- Real-Time Chat using WebSockets
+- Broadcast Messaging
+
 ## Tech Stack
 
 - Go
 - Gin
 - PostgreSQL
-- Redis
-- WebSockets
+- GORM
+- Gorilla WebSocket
 - JWT
-- Dockerv
+- bcrypt
+
+## Project Structure
+
+```text
+cmd/
+    server/
+
+internal/
+    config/
+    database/
+    handlers/
+    middleware/
+    models/
+    repository/
+    utils/
+    websocket/
+
+## Project Structure
+
+```text
+cmd/
+    server/
+
+internal/
+    config/
+    database/
+    handlers/
+    middleware/
+    models/
+    repository/
+    utils/
+    websocket/
+
